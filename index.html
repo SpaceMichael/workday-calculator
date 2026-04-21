@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>返工日數計算器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --border: #dbe4f0;
+      --danger: #b91c1c;
+      --success: #0f766e;
+      --shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", Arial, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(37, 99, 235, 0.15), transparent 32%),
+        linear-gradient(180deg, #eff6ff 0%, var(--bg) 40%, #eef2ff 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .app {
+      width: min(920px, 100%);
+      display: grid;
+      gap: 20px;
+    }
+
+    .hero,
+    .card {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(219, 228, 240, 0.9);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      padding: 28px 28px 8px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    h1 {
+      margin: 16px 0 10px;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      margin: 0 0 20px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .card {
+      padding: 24px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    label {
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      font: inherit;
+      background: #fff;
+      color: var(--text);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 14px;
+      padding: 14px 18px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, background-color 0.2s ease, opacity 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    .result {
+      margin-top: 22px;
+      padding: 22px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, #eff6ff, #ffffff);
+      border: 1px solid #c7d2fe;
+      display: grid;
+      gap: 10px;
+    }
+
+    .result .label {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .result .value {
+      font-size: clamp(32px, 5vw, 56px);
+      font-weight: 800;
+      color: var(--success);
+      line-height: 1;
+    }
+
+    .result .detail {
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .error {
+      margin-top: 16px;
+      color: var(--danger);
+      font-weight: 700;
+      min-height: 1.5em;
+    }
+
+    .notes {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+      margin-top: 18px;
+    }
+
+    .notes div {
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.75);
+      border: 1px solid var(--border);
+    }
+
+    @media (max-width: 720px) {
+      .grid,
+      .notes {
+        grid-template-columns: 1fr;
+      }
+
+      .hero,
+      .card {
+        border-radius: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="hero" aria-labelledby="title">
+      <div class="eyebrow">返工日數計算器</div>
+      <h1 id="title">純日曆天數計算</h1>
+      <p class="subtitle">
+        輸入開始上班日和最後上班日，系統會直接計算包含首尾兩日的總日數。
+        不扣香港公眾假期，也不需要另外輸入閏年設定，會自動判斷。
+      </p>
+    </section>
+
+    <section class="card" aria-label="日期計算表單">
+      <form id="calculatorForm" novalidate>
+        <div class="grid">
+          <div class="field">
+            <label for="startDate">開始上班日</label>
+            <input id="startDate" name="startDate" type="text" placeholder="dd/mm/yyyy" inputmode="numeric" autocomplete="off" required>
+          </div>
+
+          <div class="field">
+            <label for="endDate">最後上班日</label>
+            <input id="endDate" name="endDate" type="text" placeholder="dd/mm/yyyy" inputmode="numeric" autocomplete="off" required>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="primary" type="submit">計算日數</button>
+          <button class="secondary" type="button" id="clearButton">清除</button>
+        </div>
+      </form>
+
+      <div class="result" aria-live="polite">
+        <div class="label">總日數</div>
+        <div class="value" id="daysValue">--</div>
+        <div class="detail" id="detailText">請輸入兩個日期後按「計算日數」。</div>
+      </div>
+
+      <div class="error" id="errorText" role="alert"></div>
+
+      <div class="notes">
+        <div>計算方式：包含開始日與最後上班日，所以同一天會顯示 1 日。</div>
+        <div>日期格式：<code>dd/mm/yyyy</code>，例如 <code>22/04/2026</code>。</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById('calculatorForm');
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    const daysValue = document.getElementById('daysValue');
+    const detailText = document.getElementById('detailText');
+    const errorText = document.getElementById('errorText');
+    const clearButton = document.getElementById('clearButton');
+
+    const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+    function parseDate(value) {
+      if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+        return null;
+      }
+
+      const [day, month, year] = value.split('/').map(Number);
+      const utcDate = new Date(Date.UTC(year, month - 1, day));
+
+      if (
+        utcDate.getUTCFullYear() !== year ||
+        utcDate.getUTCMonth() !== month - 1 ||
+        utcDate.getUTCDate() !== day
+      ) {
+        return null;
+      }
+
+      return utcDate;
+    }
+
+    function formatLabel(date) {
+      const day = String(date.getUTCDate()).padStart(2, '0');
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const year = date.getUTCFullYear();
+      return `${day}/${month}/${year}`;
+    }
+
+    function showError(message) {
+      errorText.textContent = message;
+    }
+
+    function clearError() {
+      errorText.textContent = '';
+    }
+
+    function updateResult(days, start, end) {
+      daysValue.textContent = `${days}`;
+      detailText.textContent = `${formatLabel(start)} 至 ${formatLabel(end)}，包含首尾兩日，共 ${days} 日。`;
+    }
+
+    function calculateDays(event) {
+      if (event) {
+        event.preventDefault();
+      }
+
+      clearError();
+
+      const startValue = startDateInput.value;
+      const endValue = endDateInput.value;
+
+      if (!startValue || !endValue) {
+        daysValue.textContent = '--';
+        detailText.textContent = '請先輸入開始上班日和最後上班日。';
+        showError('請輸入兩個有效日期。');
+        return;
+      }
+
+      const start = parseDate(startValue);
+      const end = parseDate(endValue);
+
+      if (!start || !end) {
+        daysValue.textContent = '--';
+        detailText.textContent = '日期格式必須是 dd/mm/yyyy。';
+        showError('日期無效，請重新輸入正確日期。');
+        return;
+      }
+
+      if (end < start) {
+        daysValue.textContent = '--';
+        detailText.textContent = '最後上班日不能早過開始上班日。';
+        showError('最後上班日不能早過開始上班日。');
+        return;
+      }
+
+      const days = Math.floor((end - start) / DAY_IN_MS) + 1;
+      updateResult(days, start, end);
+    }
+
+    form.addEventListener('submit', calculateDays);
+    clearButton.addEventListener('click', () => {
+      form.reset();
+      daysValue.textContent = '--';
+      detailText.textContent = '請輸入兩個日期後按「計算日數」。';
+      clearError();
+      startDateInput.focus();
+    });
+  </script>
+</body>
+</html>
