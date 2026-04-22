@@ -195,6 +195,38 @@
       line-height: 1.7;
     }
 
+    .result .breakdown {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .result .breakdown .chip {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 20px;
+      border-radius: 14px;
+      background: #dbeafe;
+      border: 1px solid #bfdbfe;
+      min-width: 90px;
+    }
+
+    .result .breakdown .chip-num {
+      font-size: clamp(22px, 4vw, 36px);
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1;
+    }
+
+    .result .breakdown .chip-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
     .error {
       margin-top: 16px;
       color: var(--danger);
@@ -266,6 +298,16 @@
       <div class="result" aria-live="polite">
         <div class="label">總日數</div>
         <div class="value" id="daysValue">--</div>
+        <div class="breakdown" id="breakdown" style="display:none">
+          <div class="chip">
+            <span class="chip-num" id="yearsValue">0</span>
+            <span class="chip-label">年</span>
+          </div>
+          <div class="chip">
+            <span class="chip-num" id="remDaysValue">0</span>
+            <span class="chip-label">日</span>
+          </div>
+        </div>
         <div class="detail" id="detailText">請輸入兩個日期後按「計算日數」。</div>
       </div>
 
@@ -286,6 +328,9 @@
     const detailText = document.getElementById('detailText');
     const errorText = document.getElementById('errorText');
     const clearButton = document.getElementById('clearButton');
+    const breakdown = document.getElementById('breakdown');
+    const yearsValue = document.getElementById('yearsValue');
+    const remDaysValue = document.getElementById('remDaysValue');
 
     const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
@@ -324,9 +369,45 @@
       errorText.textContent = '';
     }
 
-    function updateResult(days, start, end) {
-      daysValue.textContent = `${days}`;
-      detailText.textContent = `${formatLabel(start)} 至 ${formatLabel(end)}，包含首尾兩日，共 ${days} 日。`;
+    function calcYearsAndDays(start, end) {
+      let years = end.getUTCFullYear() - start.getUTCFullYear();
+
+      // Find the anniversary of start date in the calculated year
+      let anniversary = new Date(Date.UTC(
+        start.getUTCFullYear() + years,
+        start.getUTCMonth(),
+        start.getUTCDate()
+      ));
+
+      // If anniversary is after end, go back one year
+      if (anniversary > end) {
+        years--;
+        anniversary = new Date(Date.UTC(
+          start.getUTCFullYear() + years,
+          start.getUTCMonth(),
+          start.getUTCDate()
+        ));
+      }
+
+      // Remaining days inclusive of anniversary and end
+      const remainingDays = Math.floor((end - anniversary) / DAY_IN_MS) + 1;
+      return { years, days: remainingDays };
+    }
+
+    function updateResult(totalDays, start, end) {
+      const { years, days } = calcYearsAndDays(start, end);
+      daysValue.textContent = `${totalDays}`;
+      yearsValue.textContent = years;
+      remDaysValue.textContent = days;
+      breakdown.style.display = 'inline-flex';
+
+      let breakdown_text = '';
+      if (years > 0) {
+        breakdown_text = `共 ${years} 年 ${days} 日`;
+      } else {
+        breakdown_text = `共 ${days} 日（不足 1 年）`;
+      }
+      detailText.textContent = `${formatLabel(start)} 至 ${formatLabel(end)}，包含首尾兩日，總計 ${totalDays} 日。${breakdown_text}。`;
     }
 
     function calculateDays(event) {
@@ -371,6 +452,7 @@
     clearButton.addEventListener('click', () => {
       form.reset();
       daysValue.textContent = '--';
+      breakdown.style.display = 'none';
       detailText.textContent = '請輸入兩個日期後按「計算日數」。';
       clearError();
       startDateInput.focus();
