@@ -116,31 +116,32 @@
       font-size: 15px;
     }
 
-    input[type="date"] {
+    input[type="text"] {
       width: 100%;
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 14px 16px;
       font: inherit;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
       background: #fff;
       color: var(--text);
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
       -webkit-appearance: none;
       appearance: none;
-      cursor: pointer;
     }
 
-    input[type="date"]:focus {
+    input[type="text"]:focus {
       outline: none;
       border-color: var(--primary);
       box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
     }
 
-    input[type="date"]::-webkit-calendar-picker-indicator {
-      cursor: pointer;
-      opacity: 0.6;
-      width: 20px;
-      height: 20px;
+    input[type="text"]::placeholder {
+      color: #9ca3af;
+      font-weight: 400;
+      letter-spacing: normal;
     }
 
     .actions {
@@ -299,12 +300,16 @@
         <div class="grid">
           <div class="field">
             <label for="startDate">開始上班日</label>
-            <input id="startDate" name="startDate" type="date" required>
+            <input id="startDate" name="startDate" type="text"
+                   inputmode="numeric" placeholder="ddmmyyyy" maxlength="8"
+                   autocomplete="off" required>
           </div>
 
           <div class="field">
             <label for="endDate">最後上班日</label>
-            <input id="endDate" name="endDate" type="date" required>
+            <input id="endDate" name="endDate" type="text"
+                   inputmode="numeric" placeholder="ddmmyyyy" maxlength="8"
+                   autocomplete="off" required>
           </div>
         </div>
 
@@ -334,7 +339,7 @@
 
       <div class="notes">
         <div>計算方式：包含開始日與最後上班日，所以同一天會顯示 1 日。</div>
-        <div>手機直接點選日期欄，會彈出日曆/滾輪選擇器，無需手動輸入。結果以 <code>dd/mm/yyyy</code> 格式顯示。</div>
+        <div>輸入格式：<code>ddmmyyyy</code>，例如 <code>22042026</code>。手機會彈出數字鍵盤。</div>
       </div>
     </section>
   </main>
@@ -354,10 +359,13 @@
     const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
     function parseDate(value) {
-      // Native date input always returns yyyy-mm-dd
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+      // Expect ddmmyyyy (8 digits, no separators)
+      if (!/^\d{8}$/.test(value)) return null;
 
-      const [year, month, day] = value.split('-').map(Number);
+      const day   = Number(value.slice(0, 2));
+      const month = Number(value.slice(2, 4));
+      const year  = Number(value.slice(4, 8));
+
       const utcDate = new Date(Date.UTC(year, month - 1, day));
 
       if (
@@ -449,8 +457,8 @@
 
       if (!start || !end) {
         daysValue.textContent = '--';
-        detailText.textContent = '日期格式錯誤，請重新選擇日期。';
-        showError('日期無效，請重新輸入正確日期。');
+        detailText.textContent = '日期格式錯誤，請以 ddmmyyyy 格式輸入，例如 22042026。';
+        showError('日期無效，格式應為 ddmmyyyy，例如 22042026。');
         return;
       }
 
