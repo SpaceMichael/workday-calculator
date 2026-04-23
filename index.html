@@ -120,11 +120,12 @@
       width: 100%;
       border: 1px solid var(--border);
       border-radius: 14px;
-      padding: 14px 16px;
+      padding: 14px 10px;
       font: inherit;
-      font-size: 18px;
+      font-size: 20px;
       font-weight: 700;
       letter-spacing: 0.12em;
+      text-align: center;
       background: #fff;
       color: var(--text);
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -142,6 +143,49 @@
       color: #9ca3af;
       font-weight: 400;
       letter-spacing: normal;
+    }
+
+    .date-parts {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .date-parts input.part-dd,
+    .date-parts input.part-mm {
+      width: 68px;
+      flex-shrink: 0;
+    }
+
+    .date-parts input.part-yyyy {
+      flex: 1;
+    }
+
+    .date-sep {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .date-fixed {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      background: #f1f5f9;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .date-fixed .lock {
+      font-size: 14px;
+      opacity: 0.5;
     }
 
     .actions {
@@ -233,7 +277,7 @@
     }
 
     .result .breakdown .chip-num {
-      font-size: clamp(22px, 4vw, 36px);
+      font-size: clamp(32px, 5vw, 56px);
       font-weight: 800;
       color: var(--primary);
       line-height: 1;
@@ -284,7 +328,7 @@
   </style>
 </head>
 <body>
-  <div class="version-badge">v 22/04/2026</div>
+  <div class="version-badge">v 23/04/2026</div>
   <main class="app">
     <section class="hero" aria-labelledby="title">
       <div class="eyebrow">返工日數計算器</div>
@@ -299,17 +343,27 @@
       <form id="calculatorForm" novalidate>
         <div class="grid">
           <div class="field">
-            <label for="startDate">開始上班日</label>
-            <input id="startDate" name="startDate" type="text"
-                   inputmode="numeric" placeholder="ddmmyyyy" maxlength="8"
-                   autocomplete="off" required>
+            <label>開始上班日</label>
+            <div class="date-parts">
+              <input id="startDD" class="part-dd" type="text"
+                     inputmode="numeric" placeholder="DD" maxlength="2"
+                     autocomplete="off" required>
+              <span class="date-sep">/</span>
+              <input id="startMM" class="part-mm" type="text"
+                     inputmode="numeric" placeholder="MM" maxlength="2"
+                     autocomplete="off" required>
+              <span class="date-sep">/</span>
+              <input id="startYYYY" class="part-yyyy" type="text"
+                     inputmode="numeric" placeholder="YYYY" maxlength="4"
+                     autocomplete="off" required>
+            </div>
           </div>
 
           <div class="field">
-            <label for="endDate">最後上班日</label>
-            <input id="endDate" name="endDate" type="text"
-                   inputmode="numeric" placeholder="ddmmyyyy" maxlength="8"
-                   autocomplete="off" required>
+            <label>最後上班日</label>
+            <div class="date-fixed">
+              <span class="lock">🔒</span>30/04/2025
+            </div>
           </div>
         </div>
 
@@ -339,72 +393,77 @@
 
       <div class="notes">
         <div>計算方式：包含開始日與最後上班日，所以同一天會顯示 1 日。</div>
-        <div>輸入格式：<code>ddmmyyyy</code>，例如 <code>22042026</code>。手機會彈出數字鍵盤。</div>
+        <div>輸入格式：分別輸入 <code>DD</code>、<code>MM</code>、<code>YYYY</code>，系統自動跳到下一格。</div>
       </div>
     </section>
   </main>
 
   <script>
-    const form = document.getElementById('calculatorForm');
-    const startDateInput = document.getElementById('startDate');
-    const endDateInput = document.getElementById('endDate');
-    const daysValue = document.getElementById('daysValue');
-    const detailText = document.getElementById('detailText');
-    const errorText = document.getElementById('errorText');
-    const clearButton = document.getElementById('clearButton');
-    const breakdown = document.getElementById('breakdown');
-    const yearsValue = document.getElementById('yearsValue');
+    const form         = document.getElementById('calculatorForm');
+    const startDD      = document.getElementById('startDD');
+    const startMM      = document.getElementById('startMM');
+    const startYYYY    = document.getElementById('startYYYY');
+    const daysValue    = document.getElementById('daysValue');
+    const detailText   = document.getElementById('detailText');
+    const errorText    = document.getElementById('errorText');
+    const clearButton  = document.getElementById('clearButton');
+    const breakdown    = document.getElementById('breakdown');
+    const yearsValue   = document.getElementById('yearsValue');
     const remDaysValue = document.getElementById('remDaysValue');
 
     const DAY_IN_MS = 24 * 60 * 60 * 1000;
+    const END_DATE  = new Date(Date.UTC(2025, 3, 30)); // 30/04/2025 (fixed)
 
-    function parseDate(value) {
-      // Expect ddmmyyyy (8 digits, no separators)
-      if (!/^\d{8}$/.test(value)) return null;
+    // Auto-advance to next input when filled
+    startDD.addEventListener('input', () => {
+      startDD.value = startDD.value.replace(/\D/g, '');
+      if (startDD.value.length === 2) startMM.focus();
+    });
+    startMM.addEventListener('input', () => {
+      startMM.value = startMM.value.replace(/\D/g, '');
+      if (startMM.value.length === 2) startYYYY.focus();
+    });
+    startYYYY.addEventListener('input', () => {
+      startYYYY.value = startYYYY.value.replace(/\D/g, '');
+    });
 
-      const day   = Number(value.slice(0, 2));
-      const month = Number(value.slice(2, 4));
-      const year  = Number(value.slice(4, 8));
+    function buildStartDate() {
+      const dd   = startDD.value.padStart(2, '0');
+      const mm   = startMM.value.padStart(2, '0');
+      const yyyy = startYYYY.value;
+      if (dd.length < 2 || mm.length < 2 || yyyy.length < 4) return null;
 
-      const utcDate = new Date(Date.UTC(year, month - 1, day));
+      const day   = Number(dd);
+      const month = Number(mm);
+      const year  = Number(yyyy);
+      const d = new Date(Date.UTC(year, month - 1, day));
 
       if (
-        utcDate.getUTCFullYear() !== year ||
-        utcDate.getUTCMonth() !== month - 1 ||
-        utcDate.getUTCDate() !== day
-      ) {
-        return null;
-      }
+        d.getUTCFullYear() !== year ||
+        d.getUTCMonth()    !== month - 1 ||
+        d.getUTCDate()     !== day
+      ) return null;
 
-      return utcDate;
+      return d;
     }
 
     function formatLabel(date) {
-      const day = String(date.getUTCDate()).padStart(2, '0');
+      const day   = String(date.getUTCDate()).padStart(2, '0');
       const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-      const year = date.getUTCFullYear();
+      const year  = date.getUTCFullYear();
       return `${day}/${month}/${year}`;
     }
 
-    function showError(message) {
-      errorText.textContent = message;
-    }
-
-    function clearError() {
-      errorText.textContent = '';
-    }
+    function showError(msg) { errorText.textContent = msg; }
+    function clearError()   { errorText.textContent = ''; }
 
     function calcYearsAndDays(start, end) {
       let years = end.getUTCFullYear() - start.getUTCFullYear();
-
-      // Find the anniversary of start date in the calculated year
       let anniversary = new Date(Date.UTC(
         start.getUTCFullYear() + years,
         start.getUTCMonth(),
         start.getUTCDate()
       ));
-
-      // If anniversary is after end, go back one year
       if (anniversary > end) {
         years--;
         anniversary = new Date(Date.UTC(
@@ -413,74 +472,63 @@
           start.getUTCDate()
         ));
       }
-
-      // Remaining days inclusive of anniversary and end
       const remainingDays = Math.floor((end - anniversary) / DAY_IN_MS) + 1;
       return { years, days: remainingDays };
     }
 
     function updateResult(totalDays, start, end) {
       const { years, days } = calcYearsAndDays(start, end);
-      daysValue.textContent = `${totalDays}`;
-      yearsValue.textContent = years;
+      daysValue.textContent    = `${totalDays}`;
+      yearsValue.textContent   = years;
       remDaysValue.textContent = days;
-      breakdown.style.display = 'inline-flex';
+      breakdown.style.display  = 'inline-flex';
 
-      let breakdown_text = '';
-      if (years > 0) {
-        breakdown_text = `共 ${years} 年 ${days} 日`;
-      } else {
-        breakdown_text = `共 ${days} 日（不足 1 年）`;
-      }
+      const breakdown_text = years > 0
+        ? `共 ${years} 年 ${days} 日`
+        : `共 ${days} 日（不足 1 年）`;
       detailText.textContent = `${formatLabel(start)} 至 ${formatLabel(end)}，包含首尾兩日，總計 ${totalDays} 日。${breakdown_text}。`;
     }
 
     function calculateDays(event) {
-      if (event) {
-        event.preventDefault();
-      }
-
+      if (event) event.preventDefault();
       clearError();
 
-      const startValue = startDateInput.value;
-      const endValue = endDateInput.value;
-
-      if (!startValue || !endValue) {
+      if (!startDD.value || !startMM.value || !startYYYY.value) {
         daysValue.textContent = '--';
-        detailText.textContent = '請先輸入開始上班日和最後上班日。';
-        showError('請輸入兩個有效日期。');
+        detailText.textContent = '請輸入開始上班日的 DD、MM、YYYY。';
+        showError('請填寫完整的開始日期。');
         return;
       }
 
-      const start = parseDate(startValue);
-      const end = parseDate(endValue);
-
-      if (!start || !end) {
+      const start = buildStartDate();
+      if (!start) {
         daysValue.textContent = '--';
-        detailText.textContent = '日期格式錯誤，請以 ddmmyyyy 格式輸入，例如 22042026。';
-        showError('日期無效，格式應為 ddmmyyyy，例如 22042026。');
+        detailText.textContent = '日期無效，請檢查 DD / MM / YYYY 是否正確。';
+        showError('日期無效，例如不存在的日期如 31/04 或 29/02（非閏年）。');
         return;
       }
 
-      if (end < start) {
+      if (END_DATE < start) {
         daysValue.textContent = '--';
-        detailText.textContent = '最後上班日不能早過開始上班日。';
-        showError('最後上班日不能早過開始上班日。');
+        detailText.textContent = '開始上班日不能遲過最後上班日 30/04/2025。';
+        showError('開始上班日不能遲過最後上班日。');
         return;
       }
 
-      const days = Math.floor((end - start) / DAY_IN_MS) + 1;
-      updateResult(days, start, end);
+      const days = Math.floor((END_DATE - start) / DAY_IN_MS) + 1;
+      updateResult(days, start, END_DATE);
     }
 
     form.addEventListener('submit', calculateDays);
     clearButton.addEventListener('click', () => {
-      form.reset();
-      daysValue.textContent = '--';
+      startDD.value = '';
+      startMM.value = '';
+      startYYYY.value = '';
+      daysValue.textContent  = '--';
       breakdown.style.display = 'none';
       detailText.textContent = '請輸入兩個日期後按「計算日數」。';
       clearError();
-      startDateInput.focus();
+      startDD.focus();
     });
   </script>
 </body>
